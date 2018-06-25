@@ -14,13 +14,16 @@ import (
 )
 
 var (
-	search	= kingpin.Command("search", "Search for commands in the history")
+	app = kingpin.New("historian", "A command-line too to get your commands")
+	search	= app.Command("search", "Search for commands in the history")
 	searchDate = search.Flag("date", "Dateformat like 2018-04-10").Short('d').String()
-	searchCommand = search.Flag("command", "A command like ping").Short('c').Strings()
+	searchCommand = search.Arg("command", "A command like ping").Strings()
 	searchFrom = search.Flag("from", "Search from f.e.: 13:00").Short('f').String()
 	searchTo = search.Flag("to", "Search to f.e.: 13:00").Short('t').String()
-	delete = kingpin.Command("delete", "Delete older than X days")
+	delete = app.Command("delete", "Delete older than X days")
 	deleteDays = delete.Flag("days", "Delete X Days of history").Short('d').Int()
+	version = app.Command("version", "shows the version of historian")
+	vnr = "0.0.2"
 	yellow  = color.New(color.FgYellow).SprintFunc()
 	red     = color.New(color.FgRed).SprintFunc()
 	green   = color.New(color.FgGreen).SprintfFunc()
@@ -150,14 +153,7 @@ func deleteoldentries(text string) (del bool) {
 	}
 }
 
-func main() {
-	kingpin.Parse()
-
-	if *deleteDays != 0 && (len(*searchCommand) > 0 || *searchDate != "") {
-		fmt.Println("You can't use delete with anything else!")
-		return
-	}
-
+func Search() {
 	if *searchDate != "" {
 		fmt.Printf("Searching for commands on %s\n", *searchDate)
 	}
@@ -178,22 +174,16 @@ func main() {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		if *deleteDays != 0 {
-			if deleteoldentries(scanner.Text()) {
-				lgs = append(lgs, scanner.Text())
-			}
+		if len(*searchCommand) > 0 && (*searchDate == "" || (*searchTo != "" && *searchFrom != "")) {
+			searchforcommand(scanner.Text())
 		} else {
-			if len(*searchCommand) > 0 && (*searchDate == "" || (*searchTo != "" && *searchFrom != "")) {
-				searchforcommand(scanner.Text())
+			if *searchDate != "" || (*searchTo != "" && *searchFrom != "") {
+				searchfordate(scanner.Text())
 			} else {
-				if *searchDate != "" || (*searchTo != "" && *searchFrom != "") {
-					searchfordate(scanner.Text())
-				} else {
-					splitted := strings.Split(scanner.Text(), " ")
-					d := splitted[0]
-					splitted = append(splitted[:0], splitted[1:]...)
-					fmt.Printf("%s %s\n", red(d), strings.Join(splitted, " "))
-				}
+				splitted := strings.Split(scanner.Text(), " ")
+				d := splitted[0]
+				splitted = append(splitted[:0], splitted[1:]...)
+				fmt.Printf("%s %s\n", red(d), strings.Join(splitted, " "))
 			}
 		}
 	}
@@ -215,5 +205,60 @@ func main() {
 			fmt.Fprintln(w, line)
 		}
 		w.Flush()
+	}
+}
+
+func Delete() {
+	usr, err := user.Current()
+
+	home := usr.HomeDir
+	logfile := fmt.Sprintf("%s/.logs/bash-history.log", home)
+
+	file, err := os.Open(logfile)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		if *deleteDays != 0 {
+			if deleteoldentries(scanner.Text()) {
+				lgs = append(lgs, scanner.Text())
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	if len(lgs) != 0 {
+		file, err = os.Create(logfile)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		defer file.Close()
+		w := bufio.NewWriter(file)
+		for _, line := range lgs {
+			fmt.Fprintln(w, line)
+		}
+		w.Flush()
+	}
+}
+
+func ShowVersion()  {
+	fmt.Println(vnr)
+}
+
+func main() {
+	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
+	case search.FullCommand():
+		Search()
+	case version.FullCommand():
+		ShowVersion()
+	case delete.FullCommand():
+		Delete()
 	}
 }
