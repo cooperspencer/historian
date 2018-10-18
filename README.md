@@ -7,19 +7,23 @@ This project seeks to offer a solution for this problem.
 ## What's to do?
 First of all you should edit your .bashrc and add the following to the botton:
 ```
-export PROMPT_COMMAND='if [ ! -e ~/.logs ]; then mkdir ~/.logs; fi; echo "[$(date "+%Y-%m-%d.%H:%M:%S")] $(history 1 | cut -c 8-)" >> ~/.logs/bash-history.log'
+export PROMPT_COMMAND='history 1 | cut -c 8- | historian save'
 ```
 
-This puts the commands entered into a separated file, so it won't mess up your history, and you even get a proper timestamp.
+Or if you use zshell, edit .zshrc and add this to the bottom:
+```
+export PROMPT_COMMAND='history | tail -n 1 | cut -c 8- | historian save'
+precmd() {eval "$PROMPT_COMMAND"}
+```
 
-Now you could use my tool historian.
-It is capable of searching for specific dates and entered commands and higlighting those.
-If you think that one month of bash-history is enough, you can tell it to delete everything older than 30 days.
+Historian writes your commands into an sqlite db. With historian you can search for commands and the searched term will be highlighted if it was found.
 
 ## Usage
 Basic:
 ```
 usage: historian [<flags>] <command> [<args> ...]
+
+I store your history and search it for you
 
 Flags:
   --help  Show context-sensitive help (also try --help-long and --help-man).
@@ -28,36 +32,14 @@ Commands:
   help [<command>...]
     Show help.
 
-  search [<flags>]
-    Search for commands in the history
+  save
+    Save a command
 
-  delete [<flags>]
-    Delete older than X days
-```
+  search [<criteria>...]
+    search for a command
 
-Search:
-```
-usage: historian search [<flags>]
-
-Search for commands in the history
-
-Flags:
-      --help                 Show context-sensitive help (also try --help-long and --help-man).
-  -d, --date=DATE            Dateformat like 2018-04-10
-  -c, --command=COMMAND ...  A command like ping
-  -f, --from=FROM            Search from f.e.: 13:00
-  -t, --to=TO                Search to f.e.: 13:00
-```
-
-Delete:
-```
-usage: historian delete [<flags>]
-
-Delete older than X days
-
-Flags:
-      --help       Show context-sensitive help (also try --help-long and --help-man).
-  -d, --days=DAYS  Delete X Days of history
+  integrate
+    integrate the old historian version into your database
 ```
 
 ## How to install?
