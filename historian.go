@@ -121,6 +121,22 @@ func sidb() {
 	}
 }
 
+func getAll() {
+	squery := "SELECT * FROM history"
+
+	rows, _ := db.Query(squery)
+
+	var id int
+	var timestamp int
+	var command string
+
+	for rows.Next() {
+		rows.Scan(&id, &timestamp, &command)
+		t := time.Unix(int64(timestamp), 0)
+		fmt.Printf("[%s] %s", chameleon.Lightblue(t.Format("2006.01.02:15:04:05")), command)
+	}
+}
+
 func main() {
 	usr, err := user.Current()
 	if err != nil {
@@ -138,6 +154,11 @@ func main() {
 
 	db, err = sql.Open("sqlite3", hdb)
 	defer db.Close()
+
+	if len(os.Args[1:]) == 0 {
+		getAll()
+		os.Exit(0)
+	}
 
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case save.FullCommand():
