@@ -18,20 +18,19 @@ import (
 )
 
 var (
-	db = &sql.DB{}
+	db             = &sql.DB{}
 	historian_path = ""
-	hdb = ""
-	home = ""
+	hdb            = ""
+	home           = ""
 
 	// KINGPIN
-	app = kingpin.New("historian", "I store your history and search it for you")
-	save = app.Command("save", "Save a command")
+	app    = kingpin.New("historian", "I store your history and search it for you")
+	save   = app.Command("save", "Save a command")
 	search = app.Command("search", "search for a command")
-	svals = search.Arg("criteria", "criteria you want to search for").Strings()
-	integrate = app.Command("integrate", "integrate the old historian version into your database")
+	svals  = search.Arg("criteria", "criteria you want to search for").Strings()
 )
 
-func w2db(command *bytes.Buffer, timestamp time.Time){
+func w2db(command *bytes.Buffer, timestamp time.Time) {
 	statement, err := db.Prepare("CREATE TABLE IF NOT EXISTS history (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp INTEGER, command VARCHAR)")
 	if err != nil {
 		fmt.Println(err)
@@ -90,14 +89,24 @@ func sidb() {
 
 	for i, v := range *svals {
 		lquery += fmt.Sprintf("command LIKE '%%%s%%'", v)
-		if i < len(*svals) - 1 {
+		if i < len(*svals)-1 {
 			lquery += " and "
 		}
 	}
 
 	squery += lquery
 
-	rows, _ := db.Query(squery)
+	rows, err := db.Query(squery)
+
+	if err != nil {
+		fmt.Println("Did you extend your shell?")
+		fmt.Println("For " + chameleon.Lightblue("zsh").String() + ": ")
+		fmt.Println("\texport PROMPT_COMMAND='history | tail -n 1 | cut -c 8- | historian save'" +
+			"\n\tprecmd() {eval \"$PROMPT_COMMAND\"}")
+		fmt.Println("For " + chameleon.Lightblue("bash").String() + ": ")
+		fmt.Println("\texport PROMPT_COMMAND='history 1 | cut -c 8- | historian save'")
+		os.Exit(1)
+	}
 
 	var id int
 	var timestamp int
@@ -124,7 +133,17 @@ func sidb() {
 func getAll() {
 	squery := "SELECT * FROM history"
 
-	rows, _ := db.Query(squery)
+	rows, err := db.Query(squery)
+
+	if err != nil {
+		fmt.Println("Did you extend your shell?")
+		fmt.Println("For " + chameleon.Lightblue("zsh").String() + ": ")
+		fmt.Println("\texport PROMPT_COMMAND='history | tail -n 1 | cut -c 8- | historian save'" +
+			"\n\tprecmd() {eval \"$PROMPT_COMMAND\"}")
+		fmt.Println("For " + chameleon.Lightblue("bash").String() + ": ")
+		fmt.Println("\texport PROMPT_COMMAND='history 1 | cut -c 8- | historian save'")
+		os.Exit(1)
+	}
 
 	var id int
 	var timestamp int
@@ -153,6 +172,15 @@ func main() {
 	hdb = fmt.Sprintf("%s/historian.db", historian_path)
 
 	db, err = sql.Open("sqlite3", hdb)
+	if err != nil {
+		fmt.Println("Did you extend your shell?")
+		fmt.Println("For " + chameleon.Lightblue("zsh").String() + ": ")
+		fmt.Println("\texport PROMPT_COMMAND='history | tail -n 1 | cut -c 8- | historian save'" +
+			"\n\tprecmd() {eval \"$PROMPT_COMMAND\"}")
+		fmt.Println("For " + chameleon.Lightblue("bash").String() + ": ")
+		fmt.Println("\texport PROMPT_COMMAND='history 1 | cut -c 8- | historian save'")
+		os.Exit(1)
+	}
 	defer db.Close()
 
 	if len(os.Args[1:]) == 0 {
@@ -173,8 +201,5 @@ func main() {
 		w2db(buf, t)
 	case search.FullCommand():
 		sidb()
-	case integrate.FullCommand():
-		igrate()
 	}
-
 }
