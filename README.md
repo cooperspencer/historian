@@ -46,6 +46,28 @@ Commands:
 Just download the file and put it somewhere where your $PATH points to.
 e.g.: /usr/bin
 
+## Add a config?
+You can add a config in ~/.config/historian/config.yml. The colors are being edited with it.
+```
+datecolor: lightgreen
+searchcolor: lightblue
+```
+
+Available colors are:
+- lightblue
+- lightgreen
+- lightred
+- lightcyan
+- lightmagenta
+- lightyellow
+- lightgray
+- blue
+- green
+- red
+- cyan
+- magenta
+- yellow
+
 ## About
 Please keep in mind that this is software isn't finished and there can be bugs.
 If anyone has ideas to extend this project, you are welcome to tell me.

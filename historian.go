@@ -8,7 +8,9 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"gitlab.com/buddyspencer/chameleon"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"gopkg.in/yaml.v2"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
@@ -28,7 +30,65 @@ var (
 	save   = app.Command("save", "Save a command")
 	search = app.Command("search", "search for a command")
 	svals  = search.Arg("criteria", "criteria you want to search for").Strings()
+	version = app.Version("1.0.1")
+	conf = &Config{}
 )
+
+type Config struct {
+	DateColor 	string
+	SearchColor string
+}
+
+func ReadConfigfile(configfile string) *Config {
+	cfgdata, err := ioutil.ReadFile(configfile)
+
+	if err != nil {
+		return &Config{"lightblue", "lightgreen"}
+	}
+
+	t := Config{}
+
+	err = yaml.Unmarshal([]byte(cfgdata), &t)
+
+	if err != nil {
+		return &Config{"lightblue", "lightgreen"}
+	}
+
+	return &t
+}
+
+func getColor(color, value string) string {
+	switch color {
+	case "lightblue":
+		return chameleon.Lightblue(value).String()
+	case "lightgreen":
+		return chameleon.Lightgreen(value).String()
+	case "lightred":
+		return chameleon.Lightred(value).String()
+	case "lightcyan":
+		return chameleon.Lightcyan(value).String()
+	case "lightmagenta":
+		return chameleon.Lightmagenta(value).String()
+	case "lightyellow":
+		return chameleon.Lightyellow(value).String()
+	case "lightgray":
+		return chameleon.Lightgray(value).String()
+	case "blue":
+		return chameleon.Blue(value).String()
+	case "green":
+		return chameleon.Green(value).String()
+	case "red":
+		return chameleon.Red(value).String()
+	case "cyan":
+		return chameleon.Cyan(value).String()
+	case "magenta":
+		return chameleon.Magenta(value).String()
+	case "yellow":
+		return chameleon.Yellow(value).String()
+	default:
+		return chameleon.Lightblue(value).String()
+	}
+}
 
 func w2db(command *bytes.Buffer, timestamp time.Time) {
 	statement, err := db.Prepare("CREATE TABLE IF NOT EXISTS history (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp INTEGER, command VARCHAR)")
@@ -122,11 +182,11 @@ func sidb() {
 			for _, y := range matches {
 				if !contains(umatches, y) {
 					umatches = append(umatches, y)
-					command = strings.Replace(command, y, fmt.Sprint(chameleon.Green(y)), -1)
+					command = strings.Replace(command, y, getColor(conf.SearchColor, y), -1)
 				}
 			}
 		}
-		fmt.Printf("[%s] %s", chameleon.Lightblue(t.Format("2006.01.02:15:04:05")), command)
+		fmt.Printf("[%s] %s", getColor(conf.DateColor, t.Format("2006.01.02:15:04:05")), command)
 	}
 }
 
@@ -152,7 +212,7 @@ func getAll() {
 	for rows.Next() {
 		rows.Scan(&id, &timestamp, &command)
 		t := time.Unix(int64(timestamp), 0)
-		fmt.Printf("[%s] %s", chameleon.Lightblue(t.Format("2006.01.02:15:04:05")), command)
+		fmt.Printf("[%s] %s", getColor(conf.DateColor, t.Format("2006.01.02:15:04:05")), command)
 	}
 }
 
@@ -162,8 +222,10 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
 	home = usr.HomeDir
 	historian_path = fmt.Sprintf("%s/.historian", home)
+	conf = ReadConfigfile(fmt.Sprintf("%s/.config/historian/config.yml", home))
 
 	if _, err := os.Stat(historian_path); os.IsNotExist(err) {
 		os.Mkdir(historian_path, 0775)
