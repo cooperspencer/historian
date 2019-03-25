@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Linux AMD64"
-GOOS=linux GOARCH=amd64 go build -o files/historian_linux_amd64
+CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o files/historian_linux_amd64
 echo "Linux i386"
 GOOS=linux GOARCH=386 go build -o files/historian_linux_386
 echo "Linux ARM5"
