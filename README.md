@@ -51,7 +51,10 @@ You can add a config in ~/.config/historian/config.yml. The colors are being edi
 ```
 datecolor: lightgreen
 searchcolor: lightblue
+secret: true
+dateformat: 2006.01.02:15:04:05
 ```
+The secret parameter lets you enter a command with a space in front of the command and it won't be saved in the database.
 
 Available colors are:
 - lightblue

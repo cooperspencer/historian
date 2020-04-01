@@ -14,6 +14,7 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -30,20 +31,37 @@ var (
 	save   = app.Command("save", "Save a command")
 	search = app.Command("search", "search for a command")
 	svals  = search.Arg("criteria", "criteria you want to search for").Strings()
-	version = app.Version("1.0.1")
 	conf = &Config{}
 )
 
 type Config struct {
 	DateColor 	string
 	SearchColor string
+	Secret      bool
+	Dateformat  string
 }
 
 func ReadConfigfile(configfile string) *Config {
 	cfgdata, err := ioutil.ReadFile(configfile)
 
 	if err != nil {
-		return &Config{"lightblue", "lightgreen"}
+		conf := &Config{"lightblue", "lightgreen", true, "2006.01.02:15:04:05"}
+		confpath := filepath.Dir(configfile)
+		if _, err := os.Stat(confpath); os.IsNotExist(err) {
+			err := os.MkdirAll(confpath, 0700)
+			if err != nil {
+				panic(err.Error())
+			}
+			confbytes, err := yaml.Marshal(conf)
+			if err != nil {
+				panic(err.Error())
+			}
+			err = ioutil.WriteFile(configfile, confbytes, 0600)
+			if err != nil {
+				panic(err.Error())
+			}
+		}
+		return conf
 	}
 
 	t := Config{}
@@ -51,7 +69,7 @@ func ReadConfigfile(configfile string) *Config {
 	err = yaml.Unmarshal([]byte(cfgdata), &t)
 
 	if err != nil {
-		return &Config{"lightblue", "lightgreen"}
+		return &Config{"lightblue", "lightgreen", true, "2006.01.02:15:04:05"}
 	}
 
 	return &t
@@ -120,7 +138,7 @@ func igrate() {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		r := regexp.MustCompile(`\[(\d{4})-(\d{2})-(\d{2}).(\d{2}):(\d{2}):(\d{2})\]`)
+		r := regexp.MustCompile(`\[(\d{4})-(\d{2})-(\d{2})Did .(\d{2}):(\d{2}):(\d{2})\]`)
 		matches := r.FindAllString(scanner.Text(), -1)
 		if len(matches) > 0 {
 			ot := strings.Split(strings.Split(scanner.Text(), "[")[1], "]")[0]
@@ -144,6 +162,11 @@ func igrate() {
 }
 
 func sidb() {
+	if len(*svals) == 0 {
+		fmt.Println("Please add search parameters")
+		os.Exit(1)
+	}
+
 	squery := "SELECT * FROM history WHERE "
 	lquery := ""
 
@@ -159,13 +182,7 @@ func sidb() {
 	rows, err := db.Query(squery)
 
 	if err != nil {
-		fmt.Println("Did you extend your shell?")
-		fmt.Println("For " + chameleon.Lightblue("zsh").String() + ": ")
-		fmt.Println("\texport PROMPT_COMMAND='history | tail -n 1 | cut -c 8- | historian save'" +
-			"\n\tprecmd() {eval \"$PROMPT_COMMAND\"}")
-		fmt.Println("For " + chameleon.Lightblue("bash").String() + ": ")
-		fmt.Println("\texport PROMPT_COMMAND='history 1 | cut -c 8- | historian save'")
-		os.Exit(1)
+		help()
 	}
 
 	var id int
@@ -196,13 +213,7 @@ func getAll() {
 	rows, err := db.Query(squery)
 
 	if err != nil {
-		fmt.Println("Did you extend your shell?")
-		fmt.Println("For " + chameleon.Lightblue("zsh").String() + ": ")
-		fmt.Println("\texport PROMPT_COMMAND='history | tail -n 1 | cut -c 8- | historian save'" +
-			"\n\tprecmd() {eval \"$PROMPT_COMMAND\"}")
-		fmt.Println("For " + chameleon.Lightblue("bash").String() + ": ")
-		fmt.Println("\texport PROMPT_COMMAND='history 1 | cut -c 8- | historian save'")
-		os.Exit(1)
+		help()
 	}
 
 	var id int
@@ -216,7 +227,18 @@ func getAll() {
 	}
 }
 
+func help() {
+	fmt.Println("Did you extend your shell?")
+	fmt.Println("For " + chameleon.Lightblue("zsh").String() + ": ")
+	fmt.Println("\texport PROMPT_COMMAND='history | tail -n 1 | cut -c 8- | historian save'" +
+		"\n\tprecmd() {eval \"$PROMPT_COMMAND\"}")
+	fmt.Println("For " + chameleon.Lightblue("bash").String() + ": ")
+	fmt.Println("\texport PROMPT_COMMAND='history 1 | cut -c 8- | historian save'")
+	os.Exit(1)
+}
+
 func main() {
+	app.Version("1.0.2")
 	usr, err := user.Current()
 	if err != nil {
 		fmt.Println(err)
@@ -227,21 +249,19 @@ func main() {
 	historian_path = fmt.Sprintf("%s/.historian", home)
 	conf = ReadConfigfile(fmt.Sprintf("%s/.config/historian/config.yml", home))
 
+	if conf.Dateformat == "" {
+		conf.Dateformat = "2006.01.02:15:04:05"
+	}
+
 	if _, err := os.Stat(historian_path); os.IsNotExist(err) {
-		os.Mkdir(historian_path, 0775)
+		os.Mkdir(historian_path, 0700)
 	}
 
 	hdb = fmt.Sprintf("%s/historian.db", historian_path)
 
 	db, err = sql.Open("sqlite3", hdb)
 	if err != nil {
-		fmt.Println("Did you extend your shell?")
-		fmt.Println("For " + chameleon.Lightblue("zsh").String() + ": ")
-		fmt.Println("\texport PROMPT_COMMAND='history | tail -n 1 | cut -c 8- | historian save'" +
-			"\n\tprecmd() {eval \"$PROMPT_COMMAND\"}")
-		fmt.Println("For " + chameleon.Lightblue("bash").String() + ": ")
-		fmt.Println("\texport PROMPT_COMMAND='history 1 | cut -c 8- | historian save'")
-		os.Exit(1)
+		help()
 	}
 	defer db.Close()
 
@@ -260,7 +280,11 @@ func main() {
 			log.Fatalln("no input provided")
 		}
 		t := time.Now()
-		w2db(buf, t)
+		if !bytes.HasPrefix(buf.Bytes(), []byte(" ")) || !conf.Secret {
+			if !bytes.HasPrefix(buf.Bytes(), []byte(os.Args[0])) {
+				w2db(buf, t)
+			}
+		}
 	case search.FullCommand():
 		sidb()
 	}
