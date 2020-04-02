@@ -7,7 +7,10 @@ variables:
 compile:
   stage: compile
   image: techknowlogick/xgo:latest
-
+  entrypoint: ["/bin/bash", "-c"]
+  script:
+    - cd /go/src
+    - $BUILD historian
   artifacts:
     paths:
       - /build/historian-darwin-10.6-386
