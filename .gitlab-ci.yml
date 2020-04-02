@@ -6,8 +6,9 @@ variables:
 
 compile:
   stage: compile
-  image: techknowlogick/xgo:latest
-  entrypoint: ["/bin/bash", "-c"]
+  image: 
+    name: techknowlogick/xgo:latest
+    entrypoint: ["/bin/bash", "-c"]
   script:
     - cd /go/src
     - $BUILD historian
