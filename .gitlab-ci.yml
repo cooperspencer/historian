@@ -4,10 +4,8 @@ stages:
 compile:
   stage: compile
   image: techknowlogick/xgo:latest
-  script:
-    - cd ..
-    - cp -r historian /go/src
-    - build.sh /go/src/historian
+  variables:
+    GIT_CLONE_PATH: /go/src/historian
 
   artifacts:
     paths:
