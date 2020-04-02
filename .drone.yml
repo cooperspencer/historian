@@ -1,0 +1,13 @@
+kind: pipeline
+type: docker
+name: default
+
+clone:
+  depth: 1
+
+steps:
+  - name: compile
+    image: techknowlogick/xgo:latest
+    commands:
+      - cd ..
+      - /build.sh historian
