@@ -1,11 +1,12 @@
 stages:
   - compile
 
+variables:
+  GIT_CLONE_PATH: /go/src/historian
+
 compile:
   stage: compile
   image: techknowlogick/xgo:latest
-  variables:
-    GIT_CLONE_PATH: /go/src/historian
 
   artifacts:
     paths:
