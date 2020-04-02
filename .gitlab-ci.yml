@@ -1,0 +1,28 @@
+stages:
+  - compile
+
+compile:
+  image: techknowlogick/xgo:latest
+  script:
+    - cd ..
+    - cp -r historian /go/src
+    - build.sh /go/src/historian
+
+  artifacts:
+    paths:
+      - /build/historian-darwin-10.6-386
+      - /build/historian-darwin-10.6-amd64
+      - /build/historian-linux-386
+      - /build/historian-linux-amd64
+      - /build/historian-linux-arm-5
+      - /build/historian-linux-arm-6
+      - /build/historian-linux-arm64
+      - /build/historian-linux-arm-7
+      - /build/historian-linux-mips
+      - /build/historian-linux-mips64
+      - /build/historian-linux-mips64le
+      - /build/historian-linux-mipsle
+      - /build/historian-linux-ppc64le
+      - /build/historian-linux-s390x
+      - /build/historian-windows-4.0-386.exe
+      - /build/historian-windows-4.0-amd64.exe
