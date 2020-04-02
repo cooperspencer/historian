@@ -25,7 +25,7 @@ steps:
       api_key:
         from_secret: github_token
       files:
-        - dist/*
+        - /build/*
       checksum:
         - md5
         - sha1
