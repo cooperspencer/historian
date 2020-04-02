@@ -1,5 +1,5 @@
 # historian
-
+[![Build Status](https://cloud.drone.io/api/badges/cooperspencer/historian/status.svg)](https://cloud.drone.io/cooperspencer/historian)
 ## What's this?
 If you are connected to servers with more than one session, you can run into some problems with your bash-history.
 This project seeks to offer a solution for this problem.
