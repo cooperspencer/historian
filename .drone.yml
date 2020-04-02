@@ -7,9 +7,9 @@ clone:
 
 steps:
   - name: compile
-    image:
-      name: techknowlogick/xgo:latest
-      entrypoint: ["/bin/bash", "-c"]
+    image: techknowlogick/xgo:latest
+    entrypoint:
+      - /bin/sh -c
     commands:
       - cd ..
       - /build.sh historian
