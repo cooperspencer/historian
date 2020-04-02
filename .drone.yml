@@ -12,5 +12,6 @@ steps:
       - /bin/sh -c
     commands:
       - cd ..
+      - cp -r historian /go/src/historian
       - /build.sh historian
       - ls /build
