@@ -2,6 +2,7 @@ stages:
   - compile
 
 compile:
+  stage: compile
   image: techknowlogick/xgo:latest
   script:
     - cd ..
