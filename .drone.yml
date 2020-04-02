@@ -12,6 +12,7 @@ steps:
       - /bin/sh -c
     commands:
       - cd ..
+      - ls
       - cp -r historian /go/src/
       - /build.sh historian
       - ls /build
