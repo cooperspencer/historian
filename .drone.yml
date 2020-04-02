@@ -11,3 +11,4 @@ steps:
     commands:
       - cd ..
       - /build.sh historian
+      - ls /build
