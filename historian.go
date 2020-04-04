@@ -5,8 +5,8 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/gookit/color"
 	_ "github.com/mattn/go-sqlite3"
-	"gitlab.com/buddyspencer/chameleon"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"gopkg.in/yaml.v2"
 	"io"
@@ -16,6 +16,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -32,6 +33,8 @@ var (
 	search = app.Command("search", "search for a command")
 	svals  = search.Arg("criteria", "criteria you want to search for").Strings()
 	conf = &Config{}
+	searchcolor = color.Render
+	datecolor = color.Render
 )
 
 type Config struct {
@@ -75,37 +78,30 @@ func ReadConfigfile(configfile string) *Config {
 	return &t
 }
 
-func getColor(color, value string) string {
-	switch color {
-	case "lightblue":
-		return chameleon.Lightblue(value).String()
-	case "lightgreen":
-		return chameleon.Lightgreen(value).String()
-	case "lightred":
-		return chameleon.Lightred(value).String()
-	case "lightcyan":
-		return chameleon.Lightcyan(value).String()
-	case "lightmagenta":
-		return chameleon.Lightmagenta(value).String()
-	case "lightyellow":
-		return chameleon.Lightyellow(value).String()
-	case "lightgray":
-		return chameleon.Lightgray(value).String()
-	case "blue":
-		return chameleon.Blue(value).String()
-	case "green":
-		return chameleon.Green(value).String()
-	case "red":
-		return chameleon.Red(value).String()
-	case "cyan":
-		return chameleon.Cyan(value).String()
-	case "magenta":
-		return chameleon.Magenta(value).String()
-	case "yellow":
-		return chameleon.Yellow(value).String()
-	default:
-		return chameleon.Lightblue(value).String()
+func getColor(colorString string) func(a ...interface{}) string {
+	c := color.Color(0)
+
+	if strings.Contains(colorString, "blue") {
+		c = color.Blue
+	} else if strings.Contains(colorString, "green") {
+		c = color.Green
+	} else if strings.Contains(colorString, "red") {
+		c = color.Red
+	} else if strings.Contains(colorString, "cyan") {
+		c = color.Cyan
+	} else if strings.Contains(colorString, "magenta") {
+		c = color.Magenta
+	} else if strings.Contains(colorString, "yellow") {
+		c = color.Yellow
+	} else {
+		c = color.White
 	}
+
+	if strings.HasPrefix(colorString, "light") && runtime.GOOS != "windows" {
+		c = c.Light()
+	}
+
+	return c.Render
 }
 
 func w2db(command *bytes.Buffer, timestamp time.Time) {
@@ -199,11 +195,11 @@ func sidb() {
 			for _, y := range matches {
 				if !contains(umatches, y) {
 					umatches = append(umatches, y)
-					command = strings.Replace(command, y, getColor(conf.SearchColor, y), -1)
+					command = strings.Replace(command, y, searchcolor(y), -1)
 				}
 			}
 		}
-		fmt.Printf("[%s] %s", getColor(conf.DateColor, t.Format("2006.01.02:15:04:05")), command)
+		fmt.Printf("[%s] %s", datecolor(t.Format("2006.01.02:15:04:05")), command)
 	}
 }
 
@@ -223,16 +219,22 @@ func getAll() {
 	for rows.Next() {
 		rows.Scan(&id, &timestamp, &command)
 		t := time.Unix(int64(timestamp), 0)
-		fmt.Printf("[%s] %s", getColor(conf.DateColor, t.Format("2006.01.02:15:04:05")), command)
+		fmt.Printf("[%s] %s", datecolor(t.Format("2006.01.02:15:04:05")), command)
 	}
 }
 
 func help() {
+	b := color.FgBlue
+	if runtime.GOOS != "windows" {
+		b = b.Light()
+	}
+	blue := b.Render
+
 	fmt.Println("Did you extend your shell?")
-	fmt.Println("For " + chameleon.Lightblue("zsh").String() + ": ")
+	fmt.Println("For " + blue("zsh") + ": ")
 	fmt.Println("\texport PROMPT_COMMAND='history | tail -n 1 | cut -c 8- | historian save'" +
 		"\n\tprecmd() {eval \"$PROMPT_COMMAND\"}")
-	fmt.Println("For " + chameleon.Lightblue("bash").String() + ": ")
+	fmt.Println("For " + blue("bash") + ": ")
 	fmt.Println("\texport PROMPT_COMMAND='history 1 | cut -c 8- | historian save'")
 	os.Exit(1)
 }
@@ -252,6 +254,8 @@ func main() {
 	if conf.Dateformat == "" {
 		conf.Dateformat = "2006.01.02:15:04:05"
 	}
+	datecolor = getColor(conf.DateColor)
+	searchcolor = getColor(conf.SearchColor)
 
 	if _, err := os.Stat(historian_path); os.IsNotExist(err) {
 		os.Mkdir(historian_path, 0700)
@@ -280,8 +284,9 @@ func main() {
 			log.Fatalln("no input provided")
 		}
 		t := time.Now()
-		if !bytes.HasPrefix(buf.Bytes(), []byte(" ")) || !conf.Secret {
-			if !bytes.HasPrefix(buf.Bytes(), []byte(os.Args[0])) {
+
+		if !bytes.HasPrefix(buf.Bytes(), []byte(os.Args[0])) {
+			if !bytes.HasPrefix(buf.Bytes(), []byte(" ")) || !conf.Secret {
 				w2db(buf, t)
 			}
 		}
