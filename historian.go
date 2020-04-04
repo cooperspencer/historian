@@ -286,8 +286,12 @@ func main() {
 		t := time.Now()
 
 		if !bytes.HasPrefix(buf.Bytes(), []byte(os.Args[0])) {
-			if !bytes.HasPrefix(buf.Bytes(), []byte(" ")) || !conf.Secret {
+			if !conf.Secret {
 				w2db(buf, t)
+			} else {
+				if !bytes.HasPrefix(buf.Bytes(), []byte(" ")) {
+					w2db(buf, t)
+				}
 			}
 		}
 	case search.FullCommand():
