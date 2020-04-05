@@ -240,7 +240,7 @@ func help() {
 }
 
 func main() {
-	app.Version("1.0.2")
+	app.Version("1.0.3")
 	usr, err := user.Current()
 	if err != nil {
 		fmt.Println(err)
